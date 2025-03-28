@@ -1,0 +1,136 @@
+// Ho va ten sinh vien : Nguyen Tuan Anh
+// MSSV : B2016945
+
+import java.io.*;
+import java.net.*;
+import java.util.Scanner;
+
+public class Anhb2016945 {
+    public static void main(String[] args) {
+        DatagramSocket udpSocket = null;
+        Socket tcpSocket = null;
+        Scanner scanner = new Scanner(System.in);
+
+        try {
+            // Nhập IP Server
+            System.out.print("Nhập địa chỉ IP của Server: ");
+            String serverIP = scanner.nextLine();
+
+            // Nhập cổng UDP Server
+            System.out.print("Nhập cổng UDP của Server: ");
+            int serverUDPPort = scanner.nextInt();
+            scanner.nextLine(); // Đọc ký tự xuống dòng còn lại
+
+            // Tạo UDP Socket cho Client
+            udpSocket = new DatagramSocket();
+
+            // Chuỗi họ tên sinh viên
+            String hoTenSV = "Nguyen Tuan Anh";
+            byte[] sendData = hoTenSV.getBytes();
+
+            // Địa chỉ IP Server
+            InetAddress serverAddress = InetAddress.getByName(serverIP);
+
+            // Gửi gói tin UDP
+            DatagramPacket sendPacket = new DatagramPacket(
+                    sendData, 
+                    sendData.length, 
+                    serverAddress, 
+                    serverUDPPort
+            );
+            udpSocket.send(sendPacket);
+            System.out.println("Đã gửi UDP gói tin: " + hoTenSV);
+
+            // Nhận gói trả về là cổng TCP
+            byte[] receiveBuffer = new byte[1024];
+            DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
+            udpSocket.receive(receivePacket);
+
+            String tcpPortStr = new String(receivePacket.getData(), 0, receivePacket.getLength());
+            int tcpPort = Integer.parseInt(tcpPortStr.trim());
+
+            System.out.println("Đã nhận được cổng TCP từ Server: " + tcpPort);
+
+            // Nối kết TCP đến Server với IP và cổng TCP nhận được
+            tcpSocket = new Socket(serverAddress, tcpPort);
+            System.out.println("Đã kết nối TCP đến Server: " + serverIP + ":" + tcpPort);
+
+            // Tạo input/output stream
+            BufferedReader tcpReader = new BufferedReader(new InputStreamReader(tcpSocket.getInputStream()));
+            BufferedWriter tcpWriter = new BufferedWriter(new OutputStreamWriter(tcpSocket.getOutputStream()));
+
+            // Chuỗi ngày tháng năm sinh
+            String ngayThangNamSinh = "24/09/2002\n"; // Có dấu xuống dòng \n theo yêu cầu
+
+            // Gửi qua TCP
+            tcpWriter.write(ngayThangNamSinh);
+            tcpWriter.flush();
+            System.out.println("Đã gửi ngày tháng năm sinh: " + ngayThangNamSinh.trim());
+
+            // Nhận phản hồi từ Server
+            String response = tcpReader.readLine();
+            System.out.println("Phản hồi từ Server: " + response);
+
+            // START NEW CODE
+            // Bổ sung chức năng gửi file .txt
+            // Hỏi người dùng có muốn gửi file .txt không
+            System.out.print("Bạn có muốn gửi file .txt đến Server không? (yes/no): ");
+            String choice = scanner.nextLine();
+
+            if (choice.equalsIgnoreCase("yes")) {
+                // Nhập đường dẫn file .txt
+                System.out.print("Nhập đường dẫn chính xác của file .txt: ");
+                String filePath = scanner.nextLine();
+
+                try {
+                    // Đọc nội dung file .txt
+                    File file = new File(filePath);
+                    if (file.exists() && file.isFile() && filePath.endsWith(".txt")) {
+                        BufferedReader fileReader = new BufferedReader(new FileReader(file));
+                        String line;
+                        StringBuilder fileContent = new StringBuilder();
+
+                        while ((line = fileReader.readLine()) != null) {
+                            fileContent.append(line).append("\n");
+                        }
+                        fileReader.close();
+
+                        // Gửi nội dung file qua TCP
+                        tcpWriter.write(fileContent.toString());
+                        tcpWriter.flush();
+                        System.out.println("Đã gửi nội dung file: " + filePath);
+
+                        // Nhận phản hồi từ Server (nếu Server có gửi lại)
+                        String fileResponse = tcpReader.readLine();
+                        System.out.println("Phản hồi từ Server sau khi gửi file: " + fileResponse);
+                    } else {
+                        System.out.println("File không tồn tại hoặc không phải file .txt!");
+                    }
+                } catch (IOException e) {
+                    System.out.println("Lỗi khi đọc hoặc gửi file: " + e.getMessage());
+                }
+            } else {
+                System.out.println("Không gửi file .txt.");
+            }
+            // END NEW CODE
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            // Đóng các socket
+            if (udpSocket != null && !udpSocket.isClosed()) {
+                udpSocket.close();
+                System.out.println("Đã đóng UDP Socket.");
+            }
+            try {
+                if (tcpSocket != null && !tcpSocket.isClosed()) {
+                    tcpSocket.close();
+                    System.out.println("Đã đóng TCP Socket.");
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            scanner.close();
+        }
+    }
+}
